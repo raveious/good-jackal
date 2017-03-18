@@ -1,14 +1,18 @@
 # Good Little Jackal
 
-- Teams should develop a URDF model for the LMS200/291. You may assume the mass of the LIDAR to be uniform.
-- Add the URDF model to the Jackal Description.
-- Define an appropriate TF in which to publish 'laser scan' data from the SICK.
-- Use the SICK Toolbox wrapper to publish LIDAR data in this reference frame.
-- Demonstrate operation of the Jackal and LIDAR using rviz.
-- You should assume you will have no Wi-Fi connectivity. Start the Jackal moving randomly or following some pattern for a predefined time.
-- Document your approach, use of the package, and describe your strategy on the github wiki page.
-- Present a map of a floor on the EERC. Include this map on your github wiki page.
-- Demonstrate operation of your mapping program at a TBD location after presentations on March 1.
+- Create a launch file to run locally on the Jackal that will bring up the PS3 Eye camera so that it publishes a color image.
+- Choose an object that is uniform in color. A bright, non-neutral, color will work best.
+- Write a subscriber node that takes in the image from the image publisher above and identifies the object.
+ - We are suggestted to use a color thresholding in HSV space.
+ - We may use this codePreview the documentView in a new window as a starting point.
+ - Other approaches may be attempted if you like.
+- Develop a control law for tracking the object via the threshold mask.
+- The controller should be to center the object within the camera's field of view.
+- The controller should attempt remain the same approximate distance from the object.
+- Same in this case refers to the size relative to the size at the start of the control loop.
+- Your controller must include a hysteresis/thresholding element ensuring that visual feedback results in smooth movement/tracking of the object.
+- Upon pressing the "circle" button on the PS3 controller the should begin tracking your object.
+- Tracking should stop when the "X" button is pressed.
 
 ## Local Development
 
