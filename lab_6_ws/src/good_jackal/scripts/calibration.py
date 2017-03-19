@@ -9,6 +9,8 @@ import cv_bridge
 from collections import deque
 import argparse
 
+from good_jackal.msg import Tracked_Object
+
 H_MIN = 26
 H_MAX = 37
 S_MIN = 115
@@ -126,15 +128,17 @@ def image_cb(msg):
      
         # loop over the (x, y) coordinates and radius of the circles
         for (x, y, r) in circles:
-	        cv2.putText(srcA, "Ball ({}:{}-{})".format(x,y,r), (x,y-(r+10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
-	        cv2.circle(srcA, (x, y), r, (0, 255, 0), 4)
-	        cv2.rectangle(srcA, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+            cv2.putText(srcA, "Ball ({}:{}-{})".format(x-320,y-240,r), (x,y-(r+10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+            cv2.circle(srcA, (x, y), r, (0, 255, 0), 4)
+            cv2.rectangle(srcA, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+            tracked = Tracked_Object()
+            tracked.x = x-320
+            tracked.y = y - 240
+            tracked.r = r
+            pub.publish(tracked)
     
     cv2.imshow('Result',srcA)
     cv2.waitKey(30)
-    
-    
-    
 
 # standard ros boilerplate
 if __name__ == "__main__":
@@ -147,7 +151,7 @@ if __name__ == "__main__":
         bridge = cv_bridge.CvBridge()
         image_sb = rospy.Subscriber('/usb_cam/image_raw', Image, image_cb)
         
-        /good_jackal/object
+        pub = rospy.Publisher('/good_jackal/object', Tracked_Object, queue_size=10)
         
         while(loop):
             cv2.waitKey(0)
