@@ -37,10 +37,11 @@ windowColorDialate = "Mask Dialate"
 windowHSVTrackbars = "HSV Trackbars"
 windowErodeDialateTrackbars = " Erode Dialate Trackbars"
 
-
+# Callback for opencv High GUI trackbar changes
 def on_trackbar(a):
     global H_MIN,H_MAX,S_MIN,S_MAX,V_MIN,V_MAX,ERODE_X,ERODE_Y,DIALATE_X,DIALATE_Y
     
+    # Read current HSV trackbar positions, update positions
     H_MIN = cv2.getTrackbarPos("H_MIN",windowHSVTrackbars)
     H_MAX = cv2.getTrackbarPos("H_MAX",windowHSVTrackbars)
     S_MIN = cv2.getTrackbarPos("S_MIN",windowHSVTrackbars)
@@ -48,11 +49,13 @@ def on_trackbar(a):
     V_MIN = cv2.getTrackbarPos("V_MIN",windowHSVTrackbars)
     V_MAX = cv2.getTrackbarPos("V_MAX",windowHSVTrackbars)
 
+    # Read current Erode/Dialate trackbar positions, update positions
     ERODE_X = cv2.getTrackbarPos("Erode X",windowErodeDialateTrackbars)
     ERODE_Y = cv2.getTrackbarPos("Erode Y",windowErodeDialateTrackbars)
     DIALATE_X = cv2.getTrackbarPos("Dialate X",windowErodeDialateTrackbars)
     DIALATE_Y = cv2.getTrackbarPos("Dialate Y",windowErodeDialateTrackbars)    
     
+    # Protect Erode/Dialate trackbars from being < 1
     if(ERODE_X<1):
         ERODE_X=1
         cv2.setTrackbarPos("Erode X", windowErodeDialateTrackbars, 1)
@@ -68,6 +71,8 @@ def on_trackbar(a):
     if(DIALATE_Y<1):
         DIALATE_Y=1
         cv2.setTrackbarPos("Dialate Y", windowErodeDialateTrackbars, 1)
+        
+    cv2.waitKey(30)
     
     
 def createHSVTrackbars():
@@ -108,10 +113,10 @@ def image_cb(msg):
     
     blurMat = cv2.blur(dialateMat,  (9, 9));        
     
-    #cv2.imshow(windowColorRaw, cv2.resize(srcA, (0,0), fx=0.5, fy=0.5))
-    #cv2.imshow(windowColorHSV, cv2.resize(hsvMat, (0,0), fx=0.5, fy=0.5))
-    #cv2.imshow(windowColorErode, cv2.resize(erodeMat, (0,0), fx=0.5, fy=0.5))
-    #cv2.imshow(windowColorDialate, cv2.resize(dialateMat, (0,0), fx=0.5, fy=0.5))
+    cv2.imshow(windowColorRaw, cv2.resize(srcA, (0,0), fx=0.5, fy=0.5))
+    cv2.imshow(windowColorHSV, cv2.resize(hsvMat, (0,0), fx=0.5, fy=0.5))
+    cv2.imshow(windowColorErode, cv2.resize(erodeMat, (0,0), fx=0.5, fy=0.5))
+    cv2.imshow(windowColorDialate, cv2.resize(dialateMat, (0,0), fx=0.5, fy=0.5))
     cv2.imshow('Blur', cv2.resize(blurMat, (0,0), fx=0.5, fy=0.5))
     
     threshMat = blurMat
@@ -119,14 +124,12 @@ def image_cb(msg):
     circles = cv2.HoughCircles(threshMat, cv2.HOUGH_GRADIENT, 1, 20,
                   param1=50,
                   param2=25,
-                  minRadius=0,
+                  minRadius=10,
                   maxRadius=0)
     
     if circles is not None:
-        # convert the (x, y) coordinates and radius of the circles to integers
         circles = np.round(circles[0, :]).astype("int")
-     
-        # loop over the (x, y) coordinates and radius of the circles
+        
         for (x, y, r) in circles:
             cv2.putText(srcA, "Ball ({}:{}-{})".format(x-320,y-240,r), (x,y-(r+10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
             cv2.circle(srcA, (x, y), r, (0, 255, 0), 4)
@@ -137,12 +140,13 @@ def image_cb(msg):
             tracked.r = r
             pub.publish(tracked)
     
-    cv2.imshow('Result',srcA)
+    #cv2.imshow('Result',srcA)
     cv2.waitKey(30)
 
 # standard ros boilerplate
 if __name__ == "__main__":
     try:
+        print(cv2.__version__)
         loop = 1
         print('Starting')
         rospy.init_node('Track_Marker')
