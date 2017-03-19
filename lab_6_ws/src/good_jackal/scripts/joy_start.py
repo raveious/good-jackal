@@ -1,38 +1,12 @@
 #!/usr/bin/env python
 
-# joy_trigger_start.py
-# Use joystick input to launch exploration nodes in jackal
-# Intro to Robotics - EE5900 - Spring 2017
-#          Assignment #5
-
-#       Project #5 Group #3
-#         Ian (Team Lead)
-#            Phillip
-#            Akhil
-#
-# /blueooth_teleop/joy
-# sensor_msgs/Joy
-#
-# std_msgs/Header header
-#   uint32 seq
-#   time stamp
-#   string frame_id
-# float32[] axes
-# int32[] buttons
-#
-# axes: [ lft - l/r, lft - up/down, L2 (1/-1), rgt - l/r, rgt - u/d, R2 (1/-1)]
-# buttons: [ x, circle, sq, tri, L1, R1, share, options, play, L3, R3, DL, DR, DU, DD]
-#
-
 import rospy
 import roslaunch
+import sys
 from sensor_msgs.msg import Joy
 
 class ControlledStart(object):
     def __init__(self, package, executable):
-        rospy.init_node("controller_starter", anonymous=False)
-        sub = rospy.Subscriber("/bluetooth_teleop/joy", Joy, self._joy_callback)
-
         # init launch api
         self.launch_api = roslaunch.scriptapi.ROSLaunch()
         self.launch_api.start()
@@ -40,6 +14,9 @@ class ControlledStart(object):
 
         self.proc = None
         self.start = False
+
+        rospy.init_node("controller_starter", anonymous=False)
+        sub = rospy.Subscriber("/bluetooth_teleop/joy", Joy, self._joy_callback)
 
         while not rospy.is_shutdown():
             if self.start:
@@ -60,6 +37,6 @@ class ControlledStart(object):
 
 if __name__ == "__main__":
     try:
-        run = ControlledStart("good_jackal", "motion.py")
+        run = ControlledStart(sys.argv[1], sys.argv[2])
     except rospy.ROSInterruptException:
         rospy.loginfo("joy_start node terminated.")
