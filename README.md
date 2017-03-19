@@ -18,13 +18,21 @@
 
 After cloning this repository, follow these steps to setup the development environment
 ```
-$ cd lab_6_ws/src
-$ catkin_init_workspace
-$ cd ..
+$ cd lab_6_ws
 $ catkin_make
 $ source devel/setup.bash
+$ source remote-jackal.sh jackal4
 ```
-## Launch files
+
+Now, ssh onto Jackal-4 and start the utilites on the Jackal
+
+```
+$ git pull
+$ cd good-jackal/lab_6_ws
+$ roslaunch good_jackal jackal.launch
+```
+
+## Launch File Descriptions
 
 Name|Description
 :---|:---:
