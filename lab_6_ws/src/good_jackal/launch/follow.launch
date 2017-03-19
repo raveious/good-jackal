@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="good_jackal" name="joy_start"  type="joy_start.py" output="screen" required="true" />
+</launch>

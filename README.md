@@ -11,7 +11,7 @@
 - The controller should attempt remain the same approximate distance from the object.
 - Same in this case refers to the size relative to the size at the start of the control loop.
 - Your controller must include a hysteresis/thresholding element ensuring that visual feedback results in smooth movement/tracking of the object.
-- Upon pressing the "circle" button on the PS3 controller the should begin tracking your object.
+- Upon pressing the "circle" button on the PS4 controller the should begin tracking your object.
 - Tracking should stop when the "X" button is pressed.
 
 ## Local Development
@@ -24,3 +24,9 @@ $ cd ..
 $ catkin_make
 $ source devel/setup.bash
 ```
+## Launch files
+
+Name|Description
+:---|:---:
+[jackal](lab_6_ws/src/good_jackal/launch/jackal.launch)|Self contained launch file that will launch all the sensors, their drivers or supporting nodes. This doesn't include any nodes that will cause the robot to move, simply creates a platform to conduct higher order functions. This is intended to be launched on the Jackal.
+[follow](lab_6_ws/src/good_jackal/launch/follow.launch)|This launch file launchs the ball following node from a controller.
