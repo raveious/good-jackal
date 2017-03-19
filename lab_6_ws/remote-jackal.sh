@@ -7,6 +7,3 @@ else
   export ROS_MASTER_URI=http://localhost:11311
   unset ROS_IP
 fi
-
-package_path="$(echo $ROS_PACKAGE_PATH | cut -d":" -f1)"
-export JACKAL_URDF_EXTRAS="$package_path/building_mapper/urdf/sick_lm2xx.urdf.xacro"
