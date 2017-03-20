@@ -9,83 +9,138 @@ import cv_bridge
 from collections import deque
 import argparse
 
+import filtering
+
 from good_jackal.msg import Tracked_Object
 
-H_MIN = 26
-H_MAX = 37
-S_MIN = 115
-S_MAX = 220
-V_MIN = 36
-V_MAX = 255
+# HSV Presets
+H_MIN = 10
+H_MAX = 70
+S_MIN = 89
+S_MAX = 212
+V_MIN = 125
+V_MAX = 200
 
+# Erode/Dialate Presets
 ERODE_X = 4
 ERODE_Y = 4
 DIALATE_X = 7
 DIALATE_Y = 7
 
-MAX_ER_DI = 20
 
-FRAME_WIDTH = 640
-FRAME_HEIGHT = 480
-    
+# Callback for image publisher
 def image_cb(msg):
     try:
+        print("-Image Rxd")
         srcA = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
     except cv_bridge.CvBridgeError as e:
+        print("-Failed")
         print(e)
 
-    hsvMat = cv2.cvtColor(srcA, cv2.COLOR_BGR2HSV)
-    
-    lower = np.array([H_MIN,S_MIN,V_MIN])
-    upper = np.array([H_MAX,S_MAX,V_MAX])
-    
-    threshMat = cv2.inRange(hsvMat,lower,upper)
-    
-    erodeElement = np.ones((ERODE_X,ERODE_Y),np.uint8)
-    dilateElement = np.ones((DIALATE_X,DIALATE_Y),np.uint8)
-    
-    erodeMat = cv2.erode(threshMat,erodeElement,iterations = 2)
-    dialateMat = cv2.dilate(erodeMat,dilateElement,iterations = 2)
-    
-    blurMat = cv2.blur(dialateMat,  (9, 9));        
-    
-    threshMat = blurMat
-    
-    circles = cv2.HoughCircles(threshMat, cv2.HOUGH_GRADIENT, 1, 20,
-                  param1=50,
-                  param2=25,
-                  minRadius=10,
-                  maxRadius=0)
-    
-    if circles is not None:
-        circles = np.round(circles[0, :]).astype("int")
-        
-        for (x, y, r) in circles:
-            cv2.putText(srcA, "Ball ({}:{}-{})".format(x-320,y-240,r), (x,y-(r+10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
-            cv2.circle(srcA, (x, y), r, (0, 255, 0), 4)
-            cv2.rectangle(srcA, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-            tracked = Tracked_Object()
-            tracked.x = x-320
-            tracked.y = y - 240
-            tracked.r = r
-            pub.publish(tracked)
+    hsvMat = filtering.cvtHSV(srcA)
+    blur1Mat = filtering.doBlur(hsvMat, 9, 9)
+    threshMat = filtering.doThresh(blur1Mat, H_MIN, H_MAX, S_MIN, S_MAX, V_MIN, V_MAX)
+    erodeMat = filtering.doErode(threshMat, ERODE_X, ERODE_Y, 2)
+    dialateMat = filtering.doDialate(erodeMat, DIALATE_X, DIALATE_Y, 2)
+    blur2Mat = filtering.doBlur(dialateMat, 2, 2)
 
-    cv2.waitKey(30)
+    (ball_x, ball_y), ball_r = filtering.findContours(blur2Mat)
+
+    tracked = Tracked_Object()
+
+    if ball_r > 10:
+        tracked.x = ball_x - 320
+        tracked.y = ball_y - 240
+        tracked.r = ball_r
+    else:
+        tracked.x = 0
+        tracked.y = 0
+        tracked.r = -1
+        
+    pub.publish(tracked)
+
+
+def update_params():
+    global H_MIN,H_MAX,S_MIN,S_MAX,V_MIN,V_MAX,ERODE_X,ERODE_Y,DIALATE_X,DIALATE_Y,CIRCLE_RATIO,CIRCLE_MIN_DIST,CIRCLE_C1,CIRCLE_C2,CIRCLE_MIN_R,CIRCLE_MAX_R
+    
+    # H_MIN Parameter
+    if rospy.has_param("/good_jackal/tracker/H_MIN"):
+        H_MIN = rospy.get_param("/good_jackal/tracker/H_MIN")
+    else:
+        rospy.set_param("/good_jackal/tracker/H_MIN", H_MIN)
+        
+    # H_MAX Parameter
+    if rospy.has_param("/good_jackal/tracker/H_MAX"):
+        H_MAX = rospy.get_param("/good_jackal/tracker/H_MAX")
+    else:
+        rospy.set_param("/good_jackal/tracker/H_MAX", H_MAX)
+        
+    # S_MIN Parameter
+    if rospy.has_param("/good_jackal/tracker/S_MIN"):
+        S_MIN = rospy.get_param("/good_jackal/tracker/S_MIN")
+    else:
+        rospy.set_param("/good_jackal/tracker/S_MIN", S_MIN)
+        
+    # S_MAX Parameter
+    if rospy.has_param("/good_jackal/tracker/S_MAX"):
+        S_MAX = rospy.get_param("/good_jackal/tracker/S_MAX")
+    else:
+        rospy.set_param("/good_jackal/tracker/S_MAX", S_MAX)
+        
+    # V_MIN Parameter
+    if rospy.has_param("/good_jackal/tracker/V_MIN"):
+        V_MIN = rospy.get_param("/good_jackal/tracker/V_MIN")
+    else:
+        rospy.set_param("/good_jackal/tracker/V_MIN", V_MIN)
+        
+    # V_MAX Parameter
+    if rospy.has_param("/good_jackal/tracker/V_MAX"):
+        V_MAX = rospy.get_param("/good_jackal/tracker/V_MAX")
+    else:
+        rospy.set_param("/good_jackal/tracker/V_MAX", V_MAX)
+          
+    # ERODE_X Parameter
+    if rospy.has_param("/good_jackal/tracker/ERODE_X"):
+        ERODE_X = rospy.get_param("/good_jackal/tracker/ERODE_X")
+    else:
+        rospy.set_param("/good_jackal/tracker/ERODE_X", ERODE_X)
+        
+    # ERODE_Y Parameter
+    if rospy.has_param("/good_jackal/tracker/ERODE_Y"):
+        ERODE_Y = rospy.get_param("/good_jackal/tracker/ERODE_Y")
+    else:
+        rospy.set_param("/good_jackal/tracker/ERODE_Y", ERODE_Y)        
+        
+    # DIALATE_X Parameter
+    if rospy.has_param("/good_jackal/tracker/DIALATE_X"):
+        DIALATE_X = rospy.get_param("/good_jackal/tracker/DIALATE_X")
+    else:
+        rospy.set_param("/good_jackal/tracker/DIALATE_X", DIALATE_X)
+        
+    # DIALATE_Y Parameter
+    if rospy.has_param("/good_jackal/tracker/DIALATE_Y"):
+        DIALATE_Y = rospy.get_param("/good_jackal/tracker/DIALATE_Y")
+    else:
+        rospy.set_param("/good_jackal/tracker/DIALATE_Y", DIALATE_Y)
+
 
 # standard ros boilerplate
 if __name__ == "__main__":
-    try:
+    try:            
         print(cv2.__version__)
-        loop = 1
+                
         rospy.init_node('Headless_Tracker')
+        rate = rospy.Rate(100)
+        
+        update_params()
+        
         bridge = cv_bridge.CvBridge()
         image_sb = rospy.Subscriber('/usb_cam/image_raw', Image, image_cb)
-        
-        pub = rospy.Publisher('/good_jackal/object', Tracked_Object, queue_size=10)
-        
-        while(loop):
-            cv2.waitKey(0)
-            
+        pub = rospy.Publisher('/good_jackal/object', Tracked_Object, queue_size=1)
+
+        while not rospy.is_shutdown():
+            cv2.waitKey(3)
+            rate.sleep()
             
     except rospy.ROSInterruptException:
         pass
