@@ -14,12 +14,12 @@ import filtering
 from good_jackal.msg import Tracked_Object
 
 # HSV Presets
-H_MIN = 36
-H_MAX = 48
-S_MIN = 115
+H_MIN = 40
+H_MAX = 57
+S_MIN = 190
 S_MAX = 255
-V_MIN = 116
-V_MAX = 255
+V_MIN = 100
+V_MAX = 234
 
 # Erode/Dialate Presets
 ERODE_X = 4
