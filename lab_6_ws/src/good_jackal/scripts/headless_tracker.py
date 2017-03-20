@@ -14,9 +14,9 @@ import filtering
 from good_jackal.msg import Tracked_Object
 
 # HSV Presets
-H_MIN = 10
+H_MIN = 25
 H_MAX = 70
-S_MIN = 89
+S_MIN = 70
 S_MAX = 212
 V_MIN = 125
 V_MAX = 200

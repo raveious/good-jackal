@@ -36,11 +36,7 @@ DIALATE_Y = 7
 
 MAX_ER_DI = 20
 
-windowColorRaw = "Color Raw"
-windowColorHSV = "Color HSV"
-windowColorThresh = "Color Threshold"
-windowColorErode = "Mask Erode"
-windowColorDialate = "Mask Dialate"
+windowSteps = "Filtering Steps"
 
 windowHSVTrackbars = "HSV Trackbars"
 windowErodeDialateTrackbars = "Erode Dialate Trackbars"
@@ -109,7 +105,6 @@ def object_cb(msg):
     
 # Callback for image
 def image_cb(msg):
-    print('Image Rxd')
     try:
         srcA = bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
     except cv_bridge.CvBridgeError as e:
@@ -132,17 +127,9 @@ def image_cb(msg):
         cv2.circle(srcA, (obj_x, obj_y), obj_r, (255, 0, 255), 2)
         cv2.putText(srcA, "Jackal(X:{} Y:{} R:{})".format(obj_x-320,obj_y-240,obj_r), (obj_x, obj_y+obj_r+10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
 
-
-
     dispMat = filtering.makeFrame(hsvMat, blur1Mat, threshMat, erodeMat, dialateMat, blur2Mat)
-
-    #cv2.imshow('Blur1', cv2.resize(blur1Mat, (0,0), fx=0.5, fy=0.5)) 
-    #cv2.imshow(windowColorHSV, cv2.resize(hsvMat, (0,0), fx=0.5, fy=0.5))
-    #cv2.imshow(windowColorErode, cv2.resize(erodeMat, (0,0), fx=0.5, fy=0.5))
-    #cv2.imshow(windowColorDialate, cv2.resize(dialateMat, (0,0), fx=0.5, fy=0.5))
-    #cv2.imshow('Blur2', cv2.resize(blur2Mat, (0,0), fx=0.5, fy=0.5))    
     
-    cv2.imshow(windowColorHSV, cv2.resize(dispMat, (0,0), fx=0.5, fy=0.5))
+    cv2.imshow(windowSteps, cv2.resize(dispMat, (0,0), fx=0.5, fy=0.5))
     
     cv2.imshow('Result', srcA)
 
@@ -193,7 +180,8 @@ def update_params():
 # standard ros boilerplate
 if __name__ == "__main__":
     try:
-        print(cv2.__version__)
+        print("OpenCV Version {}".format(cv2.__version__))
+        
                 
         rospy.init_node('Track_Calibration')
         rate = rospy.Rate(100)
@@ -209,7 +197,9 @@ if __name__ == "__main__":
         
 
         while not rospy.is_shutdown():
-            cv2.waitKey(3)
+            key = (cv2.waitKey(30) & 0xFF)
+            if(key ==  ord('a')):
+                print("Hit A")
             rate.sleep()
             
             
