@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Countour code based on http://www.pyimagesearch.com/2015/09/14/ball-tracking-with-opencv/
+# Trackbar code based on https://raw.githubusercontent.com/kylehounslow/opencv-tuts/master/object-tracking-tut/objectTrackingTut.cpp
+
 # imports
 import rospy
 from sensor_msgs.msg import Image
@@ -9,24 +12,29 @@ import cv_bridge
 from collections import deque
 import argparse
 
+import filtering
+
 from good_jackal.msg import Tracked_Object
 
-H_MIN = 26
-H_MAX = 37
-S_MIN = 115
-S_MAX = 220
-V_MIN = 36
+obj_x = 0
+obj_y = 0
+obj_r = 0
+
+# HSV Presets
+H_MIN = 0
+H_MAX = 255
+S_MIN = 0
+S_MAX = 255
+V_MIN = 0
 V_MAX = 255
 
+# Erode/Dialate Presets
 ERODE_X = 4
 ERODE_Y = 4
 DIALATE_X = 7
 DIALATE_Y = 7
 
 MAX_ER_DI = 20
-
-FRAME_WIDTH = 640
-FRAME_HEIGHT = 480
 
 windowColorRaw = "Color Raw"
 windowColorHSV = "Color HSV"
@@ -35,7 +43,8 @@ windowColorErode = "Mask Erode"
 windowColorDialate = "Mask Dialate"
 
 windowHSVTrackbars = "HSV Trackbars"
-windowErodeDialateTrackbars = " Erode Dialate Trackbars"
+windowErodeDialateTrackbars = "Erode Dialate Trackbars"
+
 
 # Callback for opencv High GUI trackbar changes
 def on_trackbar(a):
@@ -54,7 +63,7 @@ def on_trackbar(a):
     ERODE_Y = cv2.getTrackbarPos("Erode Y",windowErodeDialateTrackbars)
     DIALATE_X = cv2.getTrackbarPos("Dialate X",windowErodeDialateTrackbars)
     DIALATE_Y = cv2.getTrackbarPos("Dialate Y",windowErodeDialateTrackbars)    
-    
+
     # Protect Erode/Dialate trackbars from being < 1
     if(ERODE_X<1):
         ERODE_X=1
@@ -72,25 +81,33 @@ def on_trackbar(a):
         DIALATE_Y=1
         cv2.setTrackbarPos("Dialate Y", windowErodeDialateTrackbars, 1)
         
-    cv2.waitKey(30)
     
-    
+# Create HSV bounds window and trackbars
 def createHSVTrackbars():
     cv2.namedWindow(windowHSVTrackbars,0)
-    cv2.createTrackbar("H_MIN", windowHSVTrackbars, H_MIN, H_MAX, on_trackbar)
-    cv2.createTrackbar("H_MAX", windowHSVTrackbars, H_MAX, H_MAX, on_trackbar)
-    cv2.createTrackbar("S_MIN", windowHSVTrackbars, S_MIN, S_MAX, on_trackbar)
-    cv2.createTrackbar("S_MAX", windowHSVTrackbars, S_MAX, S_MAX, on_trackbar)
-    cv2.createTrackbar("V_MIN", windowHSVTrackbars, V_MIN, V_MAX, on_trackbar)
-    cv2.createTrackbar("V_MAX", windowHSVTrackbars, V_MAX, V_MAX, on_trackbar)
+    cv2.createTrackbar("H_MIN", windowHSVTrackbars, H_MIN, 255, on_trackbar)
+    cv2.createTrackbar("H_MAX", windowHSVTrackbars, H_MAX, 255, on_trackbar)
+    cv2.createTrackbar("S_MIN", windowHSVTrackbars, S_MIN, 255, on_trackbar)
+    cv2.createTrackbar("S_MAX", windowHSVTrackbars, S_MAX, 255, on_trackbar)
+    cv2.createTrackbar("V_MIN", windowHSVTrackbars, V_MIN, 255, on_trackbar)
+    cv2.createTrackbar("V_MAX", windowHSVTrackbars, V_MAX, 255, on_trackbar)
 
+# Create Erode Dialate element window and trackbars
 def createErodeDialateTrackbars():
     cv2.namedWindow(windowErodeDialateTrackbars,0)
     cv2.createTrackbar("Erode X", windowErodeDialateTrackbars, ERODE_X, MAX_ER_DI, on_trackbar)
     cv2.createTrackbar("Erode Y", windowErodeDialateTrackbars, ERODE_Y, MAX_ER_DI, on_trackbar)
     cv2.createTrackbar("Dialate X", windowErodeDialateTrackbars, DIALATE_X, MAX_ER_DI, on_trackbar)
-    cv2.createTrackbar("Dialate Y", windowErodeDialateTrackbars, DIALATE_Y, MAX_ER_DI, on_trackbar)
+    cv2.createTrackbar("Dialate Y", windowErodeDialateTrackbars, DIALATE_Y, MAX_ER_DI, on_trackbar) 
     
+# Callback for object tracker from headless node
+def object_cb(msg):
+    global obj_x, obj_y, obj_r
+    obj_x = msg.x + 320
+    obj_y = msg.y + 240
+    obj_r = msg.r
+    
+# Callback for image
 def image_cb(msg):
     print('Image Rxd')
     try:
@@ -98,67 +115,102 @@ def image_cb(msg):
     except cv_bridge.CvBridgeError as e:
         print(e)
 
-    hsvMat = cv2.cvtColor(srcA, cv2.COLOR_BGR2HSV)
+    hsvMat = filtering.cvtHSV(srcA)
+    blur1Mat = filtering.doBlur(hsvMat, 9, 9)
+    threshMat = filtering.doThresh(blur1Mat, H_MIN, H_MAX, S_MIN, S_MAX, V_MIN, V_MAX)
+    erodeMat = filtering.doErode(threshMat, ERODE_X, ERODE_Y, 2)
+    dialateMat = filtering.doDialate(erodeMat, DIALATE_X, DIALATE_Y, 2)
+    blur2Mat = filtering.doBlur(dialateMat, 2, 2)
+
+    (cal_x, cal_y), cal_r = filtering.findContours(blur2Mat)
+
+    if cal_r > 10:
+        cv2.circle(srcA, (cal_x, cal_y), cal_r, (0, 255, 255), 2)
+        cv2.putText(srcA, "Local(X:{} Y:{} R:{})".format(cal_x-320,cal_y-240,cal_r), (cal_x, cal_y-cal_r-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+
+    if obj_r > 10:
+        cv2.circle(srcA, (obj_x, obj_y), obj_r, (255, 0, 255), 2)
+        cv2.putText(srcA, "Jackal(X:{} Y:{} R:{})".format(obj_x-320,obj_y-240,obj_r), (obj_x, obj_y+obj_r+10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+
+
+
+    dispMat = filtering.makeFrame(hsvMat, blur1Mat, threshMat, erodeMat, dialateMat, blur2Mat)
+
+    #cv2.imshow('Blur1', cv2.resize(blur1Mat, (0,0), fx=0.5, fy=0.5)) 
+    #cv2.imshow(windowColorHSV, cv2.resize(hsvMat, (0,0), fx=0.5, fy=0.5))
+    #cv2.imshow(windowColorErode, cv2.resize(erodeMat, (0,0), fx=0.5, fy=0.5))
+    #cv2.imshow(windowColorDialate, cv2.resize(dialateMat, (0,0), fx=0.5, fy=0.5))
+    #cv2.imshow('Blur2', cv2.resize(blur2Mat, (0,0), fx=0.5, fy=0.5))    
     
-    lower = np.array([H_MIN,S_MIN,V_MIN])
-    upper = np.array([H_MAX,S_MAX,V_MAX])
+    cv2.imshow(windowColorHSV, cv2.resize(dispMat, (0,0), fx=0.5, fy=0.5))
     
-    threshMat = cv2.inRange(hsvMat,lower,upper)
+    cv2.imshow('Result', srcA)
+
+# Load in parameters on the parameter server if available
+def update_params():
+    global H_MIN,H_MAX,S_MIN,S_MAX,V_MIN,V_MAX,ERODE_X,ERODE_Y,DIALATE_X,DIALATE_Y
     
-    erodeElement = np.ones((ERODE_X,ERODE_Y),np.uint8)
-    dilateElement = np.ones((DIALATE_X,DIALATE_Y),np.uint8)
-    
-    erodeMat = cv2.erode(threshMat,erodeElement,iterations = 2)
-    dialateMat = cv2.dilate(erodeMat,dilateElement,iterations = 2)
-    
-    blurMat = cv2.blur(dialateMat,  (9, 9));        
-    
-    cv2.imshow(windowColorRaw, cv2.resize(srcA, (0,0), fx=0.5, fy=0.5))
-    cv2.imshow(windowColorHSV, cv2.resize(hsvMat, (0,0), fx=0.5, fy=0.5))
-    cv2.imshow(windowColorErode, cv2.resize(erodeMat, (0,0), fx=0.5, fy=0.5))
-    cv2.imshow(windowColorDialate, cv2.resize(dialateMat, (0,0), fx=0.5, fy=0.5))
-    cv2.imshow('Blur', cv2.resize(blurMat, (0,0), fx=0.5, fy=0.5))
-    
-    threshMat = blurMat
-    
-    circles = cv2.HoughCircles(threshMat, cv2.HOUGH_GRADIENT, 1, 20,
-                  param1=50,
-                  param2=25,
-                  minRadius=10,
-                  maxRadius=0)
-    
-    if circles is not None:
-        circles = np.round(circles[0, :]).astype("int")
+    # H_MIN Parameter
+    if rospy.has_param("/good_jackal/tracker/H_MIN"):
+        H_MIN = rospy.get_param("/good_jackal/tracker/H_MIN")
         
-        for (x, y, r) in circles:
-            cv2.putText(srcA, "Ball ({}:{}-{})".format(x-320,y-240,r), (x,y-(r+10)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
-            cv2.circle(srcA, (x, y), r, (0, 255, 0), 4)
-            cv2.rectangle(srcA, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
-            tracked = Tracked_Object()
-            tracked.x = x-320
-            tracked.y = y - 240
-            tracked.r = r
-            pub.publish(tracked)
-    
-    #cv2.imshow('Result',srcA)
-    cv2.waitKey(30)
+    # H_MAX Parameter
+    if rospy.has_param("/good_jackal/tracker/H_MAX"):
+        H_MAX = rospy.get_param("/good_jackal/tracker/H_MAX")
+        
+    # S_MIN Parameter
+    if rospy.has_param("/good_jackal/tracker/S_MIN"):
+        S_MIN = rospy.get_param("/good_jackal/tracker/S_MIN")
+        
+    # S_MAX Parameter
+    if rospy.has_param("/good_jackal/tracker/S_MAX"):
+        S_MAX = rospy.get_param("/good_jackal/tracker/S_MAX")
+        
+    # V_MIN Parameter
+    if rospy.has_param("/good_jackal/tracker/V_MIN"):
+        V_MIN = rospy.get_param("/good_jackal/tracker/V_MIN")
+        
+    # V_MAX Parameter
+    if rospy.has_param("/good_jackal/tracker/V_MAX"):
+        V_MAX = rospy.get_param("/good_jackal/tracker/V_MAX")
+          
+    # ERODE_X Parameter
+    if rospy.has_param("/good_jackal/tracker/ERODE_X"):
+        ERODE_X = rospy.get_param("/good_jackal/tracker/ERODE_X")
+        
+    # ERODE_Y Parameter
+    if rospy.has_param("/good_jackal/tracker/ERODE_Y"):
+        ERODE_Y = rospy.get_param("/good_jackal/tracker/ERODE_Y")    
+        
+    # DIALATE_X Parameter
+    if rospy.has_param("/good_jackal/tracker/DIALATE_X"):
+        DIALATE_X = rospy.get_param("/good_jackal/tracker/DIALATE_X")
+        
+    # DIALATE_Y Parameter
+    if rospy.has_param("/good_jackal/tracker/DIALATE_Y"):
+        DIALATE_Y = rospy.get_param("/good_jackal/tracker/DIALATE_Y")
 
 # standard ros boilerplate
 if __name__ == "__main__":
     try:
         print(cv2.__version__)
-        loop = 1
-        print('Starting')
-        rospy.init_node('Track_Marker')
-        createHSVTrackbars()
-        createErodeDialateTrackbars()
+                
+        rospy.init_node('Track_Calibration')
+        rate = rospy.Rate(100)
+        
         bridge = cv_bridge.CvBridge()
         image_sb = rospy.Subscriber('/usb_cam/image_raw', Image, image_cb)
+        object_sb = rospy.Subscriber("/good_jackal/object", Tracked_Object, object_cb)
         
-        pub = rospy.Publisher('/good_jackal/object', Tracked_Object, queue_size=10)
+        update_params()
         
-        while(loop):
-            cv2.waitKey(0)
+        createHSVTrackbars()
+        createErodeDialateTrackbars()
+        
+
+        while not rospy.is_shutdown():
+            cv2.waitKey(3)
+            rate.sleep()
             
             
     except rospy.ROSInterruptException:
