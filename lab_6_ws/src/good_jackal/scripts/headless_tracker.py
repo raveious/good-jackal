@@ -48,7 +48,7 @@ def image_cb(msg):
 
     tracked = Tracked_Object()
 
-    if ball_r > 10:
+    if (ball_r > 25) & (ball_y > 120):
         tracked.x = ball_x - 320
         tracked.y = ball_y - 240
         tracked.r = ball_r
