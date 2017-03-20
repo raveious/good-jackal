@@ -44,18 +44,6 @@ def findContours(src):
     return [(int(x),int(y)),int(radius)]
 
 
-def makeFrame(hsv, blur1, thresh, erode, dialate, blur2):
-    
-    threshMat = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
-    erodeMat = cv2.cvtColor(erode, cv2.COLOR_GRAY2BGR)
-    dialateMat = cv2.cvtColor(dialate, cv2.COLOR_GRAY2BGR)
-    blur2Mat = cv2.cvtColor(blur2, cv2.COLOR_GRAY2BGR)
-    
-    
-    masterFrameTop = np.concatenate((hsv, blur1, threshMat), axis=1)
-    masterFrameBottom = np.concatenate((erodeMat, dialateMat, blur2Mat), axis=1)
-    masterFrame = np.concatenate((masterFrameTop, masterFrameBottom), axis=0)
-    
-    return masterFrame
+
     
     

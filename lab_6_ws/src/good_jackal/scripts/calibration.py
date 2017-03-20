@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Countour code based on http://www.pyimagesearch.com/2015/09/14/ball-tracking-with-opencv/
-# Trackbar code based on https://raw.githubusercontent.com/kylehounslow/opencv-tuts/master/object-tracking-tut/objectTrackingTut.cpp
+# Trackbar inspired by https://raw.githubusercontent.com/kylehounslow/opencv-tuts/master/object-tracking-tut/objectTrackingTut.cpp
 
 # imports
 import rospy
@@ -9,6 +9,7 @@ from sensor_msgs.msg import Image
 import numpy as np
 import cv2
 import cv_bridge
+import copy
 from collections import deque
 import argparse
 
@@ -95,7 +96,30 @@ def createErodeDialateTrackbars():
     cv2.createTrackbar("Erode Y", windowErodeDialateTrackbars, ERODE_Y, MAX_ER_DI, on_trackbar)
     cv2.createTrackbar("Dialate X", windowErodeDialateTrackbars, DIALATE_X, MAX_ER_DI, on_trackbar)
     cv2.createTrackbar("Dialate Y", windowErodeDialateTrackbars, DIALATE_Y, MAX_ER_DI, on_trackbar) 
+
+def makeFrame(hsv, blur1, thresh, erode, dialate, blur2):
     
+    
+    hsvMat = copy.copy(hsv)
+    blur1Mat = copy.copy(blur1)
+    threshMat = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+    erodeMat = cv2.cvtColor(erode, cv2.COLOR_GRAY2BGR)
+    dialateMat = cv2.cvtColor(dialate, cv2.COLOR_GRAY2BGR)
+    blur2Mat = cv2.cvtColor(blur2, cv2.COLOR_GRAY2BGR)
+    
+    cv2.putText(hsvMat, "HSV", (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 2)
+    cv2.putText(blur1Mat, "Blur 1", (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 2)
+    cv2.putText(threshMat, "Threshold", (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 2)
+    cv2.putText(erodeMat, "Erode", (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 2)
+    cv2.putText(dialateMat, "Dialate", (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 2)
+    cv2.putText(blur2Mat, "Blur 2", (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,255), 2)
+    
+    masterFrameTop = np.concatenate((hsvMat, blur1Mat, threshMat), axis=1)
+    masterFrameBottom = np.concatenate((erodeMat, dialateMat, blur2Mat), axis=1)
+    masterFrame = np.concatenate((masterFrameTop, masterFrameBottom), axis=0)
+    
+    return masterFrame
+
 # Callback for object tracker from headless node
 def object_cb(msg):
     global obj_x, obj_y, obj_r
@@ -119,15 +143,17 @@ def image_cb(msg):
 
     (cal_x, cal_y), cal_r = filtering.findContours(blur2Mat)
 
-    if cal_r > 10:
+    if (cal_r > 10):
         cv2.circle(srcA, (cal_x, cal_y), cal_r, (0, 255, 255), 2)
-        cv2.putText(srcA, "Local(X:{} Y:{} R:{})".format(cal_x-320,cal_y-240,cal_r), (cal_x, cal_y-cal_r-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+        cv2.putText(srcA, "Local(X:{} Y:{} R:{})".format(cal_x-320,cal_y-240,cal_r), (cal_x, cal_y-cal_r-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0, 255, 255))
+    else:
+        cv2.putText(srcA, "NO OBJECT FOUND!", (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
 
     if obj_r > 10:
-        cv2.circle(srcA, (obj_x, obj_y), obj_r, (255, 0, 255), 2)
-        cv2.putText(srcA, "Jackal(X:{} Y:{} R:{})".format(obj_x-320,obj_y-240,obj_r), (obj_x, obj_y+obj_r+10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+        cv2.circle(srcA, (obj_x, obj_y), obj_r, (128, 0, 255), 2)
+        cv2.putText(srcA, "Jackal(X:{} Y:{} R:{})".format(obj_x-320,obj_y-240,obj_r), (obj_x, obj_y+obj_r+15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (128, 0, 255))
 
-    dispMat = filtering.makeFrame(hsvMat, blur1Mat, threshMat, erodeMat, dialateMat, blur2Mat)
+    dispMat = makeFrame(hsvMat, blur1Mat, threshMat, erodeMat, dialateMat, blur2Mat)
     
     cv2.imshow(windowSteps, cv2.resize(dispMat, (0,0), fx=0.5, fy=0.5))
     
