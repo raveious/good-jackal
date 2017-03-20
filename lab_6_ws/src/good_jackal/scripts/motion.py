@@ -11,34 +11,61 @@ from geometry_msgs.msg import Twist
 from good_jackal.msg import Tracked_Object
 
 class BallFollower(object):
-    turn_p_gain = 0.003
+    turn_p_gain = 0.002
     turn_i_gain = 0.02
     turn_d_gain = 0.0
 
-    speed_p_gain = 0.0
-    speed_i_gain = 0.0
+    speed_p_gain = 0.15
+    speed_i_gain = 0.01
 
     def __init__(self, distance, timeout = 500):
-        # init node
-        rospy.init_node("motion", anonymous=False)
-        self.object_sub = rospy.Subscriber("/good_jackal/object", Tracked_Object, self._ballLocation)
-        self.motion_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
-
         self.prev_t_i_val = 0
         self.prev_s_i_val = 0
         self.prev_time = time()
 
         self.target_distance = distance
 
-        rate = rospy.Rate(10)
+        self.posted_turning = 0
+        self.posted_speed = 0
+
+        # init node
+        rospy.init_node("motion", anonymous=False)
+        self.object_sub = rospy.Subscriber("/good_jackal/object", Tracked_Object, self._ballLocation)
+        self.motion_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
+
+        rate = rospy.Rate(50)
 
         while not rospy.is_shutdown():
+            twist = Twist()
+
+            # do a timeout
             if time() - self.prev_time > timeout:
                 rospy.logwarn("No recent image?")
-                self.motion_pub.publish(Twist())
+                self.posted_speed = 0
+                self.posted_turning = 0
                 self.prev_t_i_val = 0
                 self.prev_s_i_val = 0
+            else:
+                twist.linear.x = self.posted_speed
+                twist.angular.z = self.posted_turning
+                self.motion_pub.publish(twist)
 
+                if self.posted_turning > 0.035:
+                    self.posted_turning = self.posted_turning - 0.00025
+                elif self.posted_turning < -0.035:
+                    self.posted_turning = self.posted_turning + 0.00025
+                else:
+                    self.posted_turning = 0
+
+                if self.posted_speed > 0.035:
+                    self.posted_speed = self.posted_speed - 0.00035
+                elif self.posted_speed < -0.035:
+                    self.posted_speed = self.posted_speed + 0.00035
+                else:
+                    self.posted_turning = 0
+
+            rospy.loginfo(twist)
+            self.motion_pub.publish(twist)
             rate.sleep()
 
     def _findRange(self, pixels):
@@ -50,6 +77,12 @@ class BallFollower(object):
         curr_time = time()
         deltat = curr_time - self.prev_time
         rospy.loginfo("Delta T: {}".format(deltat))
+
+        if data.r < 0:
+            rospy.loginfo("Invalid data, must be dead stick")
+            self.posted_turning = 0
+            self.posted_speed = 0
+            return
 
         t_p = -data.x * self.turn_p_gain
         t_i = (-data.x - self.prev_t_i_val) * deltat * self.turn_i_gain
@@ -71,18 +104,14 @@ class BallFollower(object):
         rospy.loginfo("Distance: {} (Err: {}, R: {})".format(distance, distance_err, data.r))
 
         s_p = distance_err * self.speed_p_gain
-        s_i = 0
+        s_i = distance_err * deltat * self.speed_i_gain
 
         speed = s_p + s_i
 
         rospy.loginfo("Speed: {}".format(speed))
 
-        twist = Twist()
-        twist.linear.x = 0
-        twist.angular.z = turning
-
-        rospy.logdebug(twist)
-        self.motion_pub.publish(twist)
+        self.posted_turning = turning
+        self.posted_speed = speed
 
 # standard ros boilerplate
 if __name__ == "__main__":
