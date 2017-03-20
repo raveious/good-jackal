@@ -11,12 +11,11 @@ from geometry_msgs.msg import Twist
 from good_jackal.msg import Tracked_Object
 
 class BallFollower(object):
-    turn_p_gain = 0.002
-    turn_i_gain = 0.02
-    turn_d_gain = 0.0
+    turn_p_gain = 0.004
+    turn_i_gain = 0.03
 
-    speed_p_gain = 0.15
-    speed_i_gain = 0.01
+    speed_p_gain = 0.3
+    speed_i_gain = 0.02
 
     def __init__(self, distance, timeout = 500):
         self.prev_t_i_val = 0
