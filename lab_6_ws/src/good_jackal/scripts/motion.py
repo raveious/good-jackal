@@ -11,11 +11,11 @@ from geometry_msgs.msg import Twist
 from good_jackal.msg import Tracked_Object
 
 class BallFollower(object):
-    turn_p_gain = 0.004
-    turn_i_gain = 0.03
+    turn_p_gain = 0.0050        #0.0035
+    turn_i_gain = 0.031         #0.027
 
     speed_p_gain = 0.3
-    speed_i_gain = 0.02
+    speed_i_gain = 0.025
 
     def __init__(self, distance, timeout = 500):
         self.prev_t_i_val = 0
@@ -87,7 +87,7 @@ class BallFollower(object):
         t_i = (-data.x - self.prev_t_i_val) * deltat * self.turn_i_gain
 
         # Make a dead zone...
-        if abs(data.x) < 3:
+        if abs(data.x) < 5:
             turning = 0
         else:
             turning = t_p + t_i
@@ -105,7 +105,11 @@ class BallFollower(object):
         s_p = distance_err * self.speed_p_gain
         s_i = distance_err * deltat * self.speed_i_gain
 
-        speed = s_p + s_i
+        # speed dead zone
+        if abs(distance_err) < 0.01:
+            speed = 0
+        else:
+            speed = s_p + s_i
 
         rospy.loginfo("Speed: {}".format(speed))
 
