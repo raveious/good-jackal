@@ -1,0 +1,11 @@
+<launch>
+    <node name="usb_cam" pkg="usb_cam" type="usb_cam_node" output="screen" required="true" > 
+        <param name="pixel_format" value="yuyv"/>
+    </node>
+
+    <node pkg="good_jackal" name="headless_tracker" type="headless_tracker.py" output="screen" required="true" />
+
+    <node pkg="good_jackal" name="joy_start"  type="joy_start.py" output="screen" required="true" args="good_jackal motion.py"/>
+</launch>
+
+

@@ -14,7 +14,7 @@ import filtering
 from good_jackal.msg import Tracked_Object
 
 # HSV Presets
-H_MIN = 93
+H_MIN = 75
 H_MAX = 117
 S_MIN = 100
 S_MAX = 255
@@ -68,6 +68,8 @@ def update_params():
         H_MIN = rospy.get_param("/good_jackal/tracker/H_MIN")
     else:
         rospy.set_param("/good_jackal/tracker/H_MIN", H_MIN)
+    
+    print("H_MIN = {}".format(H_MIN))
         
     # H_MAX Parameter
     if rospy.has_param("/good_jackal/tracker/H_MAX"):
@@ -75,53 +77,71 @@ def update_params():
     else:
         rospy.set_param("/good_jackal/tracker/H_MAX", H_MAX)
         
+    print("H_MAX = {}".format(H_MAX))
+    
     # S_MIN Parameter
     if rospy.has_param("/good_jackal/tracker/S_MIN"):
         S_MIN = rospy.get_param("/good_jackal/tracker/S_MIN")
     else:
         rospy.set_param("/good_jackal/tracker/S_MIN", S_MIN)
         
+    print("S_MIN = {}".format(S_MIN))
+        
     # S_MAX Parameter
     if rospy.has_param("/good_jackal/tracker/S_MAX"):
         S_MAX = rospy.get_param("/good_jackal/tracker/S_MAX")
     else:
         rospy.set_param("/good_jackal/tracker/S_MAX", S_MAX)
+    
+    print("S_MAX = {}".format(S_MAX))
         
     # V_MIN Parameter
     if rospy.has_param("/good_jackal/tracker/V_MIN"):
         V_MIN = rospy.get_param("/good_jackal/tracker/V_MIN")
     else:
         rospy.set_param("/good_jackal/tracker/V_MIN", V_MIN)
+    
+    print("V_MIN = {}".format(V_MIN))
         
     # V_MAX Parameter
     if rospy.has_param("/good_jackal/tracker/V_MAX"):
         V_MAX = rospy.get_param("/good_jackal/tracker/V_MAX")
     else:
         rospy.set_param("/good_jackal/tracker/V_MAX", V_MAX)
+    
+    print("V_MAX = {}".format(V_MAX))
           
     # ERODE_X Parameter
     if rospy.has_param("/good_jackal/tracker/ERODE_X"):
         ERODE_X = rospy.get_param("/good_jackal/tracker/ERODE_X")
     else:
         rospy.set_param("/good_jackal/tracker/ERODE_X", ERODE_X)
+    
+    print("ERODE_X = {}".format(ERODE_X))
         
     # ERODE_Y Parameter
     if rospy.has_param("/good_jackal/tracker/ERODE_Y"):
         ERODE_Y = rospy.get_param("/good_jackal/tracker/ERODE_Y")
     else:
-        rospy.set_param("/good_jackal/tracker/ERODE_Y", ERODE_Y)        
+        rospy.set_param("/good_jackal/tracker/ERODE_Y", ERODE_Y)    
+        
+    print("ERODE_Y = {}".format(ERODE_Y))
         
     # DIALATE_X Parameter
     if rospy.has_param("/good_jackal/tracker/DIALATE_X"):
         DIALATE_X = rospy.get_param("/good_jackal/tracker/DIALATE_X")
     else:
         rospy.set_param("/good_jackal/tracker/DIALATE_X", DIALATE_X)
+    
+    print("DIALATE_X = {}".format(DIALATE_X))
         
     # DIALATE_Y Parameter
     if rospy.has_param("/good_jackal/tracker/DIALATE_Y"):
         DIALATE_Y = rospy.get_param("/good_jackal/tracker/DIALATE_Y")
     else:
         rospy.set_param("/good_jackal/tracker/DIALATE_Y", DIALATE_Y)
+        
+    print("DIALATE_Y = {}".format(DIALATE_Y))
 
 
 # standard ros boilerplate
