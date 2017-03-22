@@ -15,7 +15,7 @@ class BallFollower(object):
     turn_i_gain = 0.027         #0.027
 
     speed_p_gain = 0.5
-    speed_i_gain = 0.025
+    speed_i_gain = 0.045
 
     def __init__(self, distance, timeout = 500):
         self.prev_t_i_val = 0
@@ -53,19 +53,19 @@ class BallFollower(object):
                 speed_decay = 0.00035
                 turn_decay = 0.00025
 
-            if self.posted_turning > 0.015:
+            if self.posted_turning > 0.035:
                 self.posted_turning = self.posted_turning - turn_decay
-            elif self.posted_turning < -0.015:
+            elif self.posted_turning < -0.035:
                 self.posted_turning = self.posted_turning + turn_decay
             else:
                 self.posted_turning = 0
 
-            if self.posted_speed > 0.015:
+            if self.posted_speed > 0.06:
                 self.posted_speed = self.posted_speed - speed_decay
-            elif self.posted_speed < -0.015:
+            elif self.posted_speed < -0.06:
                 self.posted_speed = self.posted_speed + speed_decay
             else:
-                self.posted_turning = 0
+                self.posted_speed = 0
                 
             twist.linear.x = self.posted_speed
             twist.angular.z = self.posted_turning
