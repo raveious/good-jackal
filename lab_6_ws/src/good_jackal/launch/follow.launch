@@ -1,3 +1,5 @@
 <launch>
   <node pkg="good_jackal" name="joy_start"  type="joy_start.py" output="screen" required="true" args="good_jackal motion.py"/>
+
+  <node pkg="good_jackal" name="headless_tracker" type="headless_tracker.py" output="screen" required="true" />
 </launch>

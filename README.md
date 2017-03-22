@@ -29,12 +29,37 @@ Now, ssh onto Jackal-4 and start the utilites on the Jackal
 ```
 $ git pull
 $ cd good-jackal/lab_6_ws
+$ source devel/setup.bash
 $ roslaunch good_jackal jackal.launch
 ```
+
+## Calibration
+
+Color calibration can be done using the calibration scripts that have been made. On the jackal, run the following commands
+
+```
+$ git pull
+$ cd good-jackal/lab_6_ws
+$ source devel/setup.bash
+$ roslaunch good_jackal jackal.launch
+```
+
+Back on your development laptop, run these sequence of commands to launch the calibration tools
+
+```
+$ git pull
+$ cd good-jackal/lab_6_ws
+$ source devel/setup.bash
+$ rosrun good_jackal calibration.py
+```
+
+Should see something like this to show you all the configuration parameters.
+![calibration window](images/ball_lock.png)
 
 ## Launch File Descriptions
 
 Name|Description
 :---|:---:
 [jackal](lab_6_ws/src/good_jackal/launch/jackal.launch)|Self contained launch file that will launch all the sensors, their drivers or supporting nodes. This doesn't include any nodes that will cause the robot to move, simply creates a platform to conduct higher order functions. This is intended to be launched on the Jackal.
-[follow](lab_6_ws/src/good_jackal/launch/follow.launch)|This launch file launchs the ball following node from a controller.
+[follow](lab_6_ws/src/good_jackal/launch/follow.launch)|This launch file launchs the ball tracking and following nodes on the local machine. Traditionally, this is your remote development laptop.
+[all_jackal](lab_6_ws/src/good_jackal/launch/all_jackal.launch)|This launch file launchs the ball tracking and following nodes and is intended to be ran on the Jackal itself.
