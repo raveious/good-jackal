@@ -56,6 +56,8 @@ $ rosrun good_jackal calibration.py
 Should see something like this to show you all the configuration parameters.
 ![calibration window](images/ball_lock.png)
 
+The yellow circle is the local configuration believes is the ball, the pink circle is what the jackal's configuration believes is the ball. Using this, you can compare your configuration before and after and see potential improvement.
+
 ## Launch File Descriptions
 
 Name|Description
